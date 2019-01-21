@@ -3,6 +3,28 @@ import serial
 import serial.tools.list_ports
 import binascii
 import time
+import socket
+import struct
+import signal
+import threading
+from datetime import datetime
+import sys
+from prompt_toolkit import prompt
+from prompt_toolkit.history import FileHistory
+from prompt_toolkit.completion import WordCompleter
+import logging
+import shutil
+from logging.handlers import RotatingFileHandler
+
+global printFlag
+global logFlag
+global is_log_param_set
+
+printFlag = True
+logFlag = False
+is_log_param_set = False
+
+input_mutex = threading.Lock()
 
 def hexShow(argv):        #十六进制显示方法1
     try:
@@ -106,7 +128,90 @@ def use_com_transfer_what_and_print(com, baudrate, what):
         print('nothing recieve...') 
     serial.Serial.close(use_com)
 
-pc_to_stm32_uart_test()
-#transition_card_to_stm32_uart_test('com6')
-use_com_transfer_what_and_print('com6', 115200, 'aa')
+def make_folder(path):
+    path=path.strip()
+    path=path.rstrip("\\")
+    isExists=os.path.exists(path)
+    if not isExists:
+        os.makedirs(path) 
+        return True
+    else:
+        return False
+
+def del_file(path):
+    path=path.strip()
+    path=path.rstrip("\\")
+    isExists=os.path.exists(path)
+    if not isExists:
+        return True
+    else:
+        shutil.rmtree(path)
+        return False
+
+def listenThreadFunc():
+    global is_log_param_set
+    timestampflag = True
+    local_addr = ('', 4999)
+    so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    so.settimeout(0.05)
+    try:
+        so.bind(local_addr)
+    except OSError:
+        print('There is already an app blind the port, press enter to exit...')
+        sys.exit()
+    print('Local> Listening to local port %d' % local_addr[1])
+
+    mkpath="\\Automated-Testing-Log\\"
+    pwd = os.getcwd()
+    pwd = pwd.replace('\\','\\\\')
+    out_address = pwd + mkpath
+    del_file(out_address)
+
+    while True:
+        try:
+            (stmlog, addr) = so.recvfrom(1000)
+        except socket.timeout:
+            continue
+        except NameError:
+            quit()
+        
+        if is_log_param_set is False:
+            make_folder(out_address)
+            logger = logging.getLogger(__name__)
+            logger.setLevel(level = logging.INFO)
+            rHandler = RotatingFileHandler((out_address+"log.txt"), maxBytes = 20*1024*1024,backupCount = 10)
+            rHandler.setLevel(logging.INFO)
+            formatter = logging.Formatter('[%(asctime)s] - %(message)s')
+            rHandler.setFormatter(formatter)
+            logger.addHandler(rHandler)
+            is_log_param_set = True         
+        try:
+            str_to_log = stmlog.decode()
+        except UnicodeDecodeError:
+            print(stmlog)
+        logger.info(str_to_log)
+
+        if printFlag is True:
+            if timestampflag is True:
+                #sys.stdout.write('[' + datetime.strftime(datetime.now(), '%H:%M:%S.%f')[0:-3] + '] ')
+                timestampflag = False
+            try:
+                logstr = stmlog.decode()
+            except UnicodeDecodeError:
+                print(stmlog)
+            else:
+                if logstr.find('\r\n') >= 0:
+                    timestampflag = True
+                #sys.stdout.write(logstr)
+                sys.stdout.flush()
+
+#主程序
+listenThread = threading.Thread(target=listenThreadFunc)
+listenThread.setDaemon(True)
+listenThread.start()
+
+while (1):
+    pc_to_stm32_uart_test()
+    #transition_card_to_stm32_uart_test('com6')
+    use_com_transfer_what_and_print('com6', 115200, 'aa')
 os.system('pause')
