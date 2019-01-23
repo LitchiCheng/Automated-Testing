@@ -16,17 +16,13 @@ import logging
 import shutil
 from logging.handlers import RotatingFileHandler
 
-global printFlag
-global logFlag
 global is_log_param_set
-
-printFlag = True
-logFlag = False
 is_log_param_set = False
 
 input_mutex = threading.Lock()
 
-def hexShow(argv):        #十六进制显示方法1
+#十六进制显示
+def hexShow(argv):        
     try:
         result = ''  
         hLen = len(argv)  
@@ -38,74 +34,105 @@ def hexShow(argv):        #十六进制显示方法1
     except:
         pass
 
-def pc_to_stm32_uart_test():
-    print('pc_to_stm32_uart_test start')
-    pc_com1 = serial.Serial('com1',115200)  
-    #print(pc_com1.portstr) 
-    strInput = input('enter some words:') 
-    try:    #如果输入不是十六进制数据-- 
+#pc到stm32的测试
+def pc_to_stm32_232_test(argv):
+    print('pc_to_stm32_232_test start')
+    pc_com1 = serial.Serial(argv,115200)  
+    strInput = 'CC' 
+    try:    
         n =pc_com1.write(bytes.fromhex(strInput))
-    except: #--则将其作为字符串输出
+    except: 
         n =pc_com1.write(bytes(strInput,encoding='utf-8'))
-    print('transfer data to stm32')
-    #print(n)  
-    time.sleep(1)     #sleep() 与 inWaiting() 最好配对使用
+    print('232 transfer data to stm32')  
+    time.sleep(1)    
     num=pc_com1.inWaiting()
     if num:
-        print('recieve data from stm32') 
-        try:   #如果读取的不是十六进制数据--
-            data= str(binascii.b2a_hex(pc_com1.read(num)))[2:-1] #十六进制显示方法2
+        print('232 recieve data from stm32') 
+        try:   
+            data= str(binascii.b2a_hex(pc_com1.read(num)))[2:-1] 
             print(data)
             if data != '6920616d2073746d333200':
-                print('test failed')
+                print('232 test failed')
             else:
-                print('test successful')
-        except: #--则将其作为字符串读取
+                print('232 test successful')
+        except: 
             str = pc_com1.read(num)
             if str != b'i am stm32\x00':
-                print('test failed')
+                print('232 test failed')
             else:
-                print('test successful')   
+                print('232 test successful')   
             hexShow(str)
     else:
-        print('nothing recieve...') 
+        print('232 nothing recieve...') 
     serial.Serial.close(pc_com1)
 
-def transition_card_to_stm32_uart_test(argv):
-    print('pc_to_stm32_uart_test start')
+#485卡到stm32的测试
+def transition_card_to_stm32_485_test(argv):
+    print('transition_card_to_stm32_485_test start')
     card_com = serial.Serial(argv,115200)  
-    print(card_com.portstr) 
-    strInput = input('enter some words:') 
-    try:    #如果输入不是十六进制数据-- 
+    strInput = 'BB' 
+    try:   
         n =card_com.write(bytes.fromhex(strInput))
-    except: #--则将其作为字符串输出
+    except: 
         n =card_com.write(bytes(strInput,encoding='utf-8'))
-    print('transfer data to stm32')
-    print(n)  
-    time.sleep(1)     #sleep() 与 inWaiting() 最好配对使用
+    print('485 transfer data to stm32')
+    time.sleep(1)   
     num=card_com.inWaiting()
-    print(num)
     if num:
-        print('recieve data from stm32') 
-        try:   #如果读取的不是十六进制数据--
-            data= str(binascii.b2a_hex(card_com.read(num)))[2:-1] #十六进制显示方法2
+        print('485 recieve data from stm32') 
+        try:   
+            data= str(binascii.b2a_hex(card_com.read(num)))[2:-1] 
             print(data)
             if data != '0504030201':
-                print('test failed')
+                print('485 test failed')
             else:
-                print('test successful')
-        except: #--则将其作为字符串读取
+                print('485 test successful')
+        except:
             str = card_com.read(num)
             if str != b'\x05\x04\x03\x02\x01':
-                print('test failed')
+                print('485 test failed')
             else:
-                print('test successful')   
+                print('485 test successful')   
             hexShow(str)
             print(str)
     else:
-        print('nothing recieve...') 
+        print('485 nothing recieve...') 
     serial.Serial.close(card_com)
 
+#232卡到stm32的测试
+def transition_card_to_stm32_232_test(argv):
+    print('transition_card_to_stm32_232_test start')
+    card_com = serial.Serial(argv,115200)   
+    strInput = 'BB'
+    try:   
+        n =card_com.write(bytes.fromhex(strInput))
+    except: 
+        n =card_com.write(bytes(strInput,encoding='utf-8'))
+    print('232 transfer data to stm32')
+    time.sleep(1)   
+    num=card_com.inWaiting()
+    if num:
+        print('232 recieve data from stm32') 
+        try:   
+            data= str(binascii.b2a_hex(card_com.read(num)))[2:-1] 
+            print(data)
+            if data != '0102030405':
+                print('232 test failed')
+            else:
+                print('232 test successful')
+        except:
+            str = card_com.read(num)
+            if str != b'\x01\x02\x03\x04\x05':
+                print('232 test failed')
+            else:
+                print('232 test successful')   
+            hexShow(str)
+            print(str)
+    else:
+        print('232 nothing recieve...') 
+    serial.Serial.close(card_com)
+
+#通用串口测试
 def use_com_transfer_what_and_print(com, baudrate, what):
     use_com = serial.Serial(com,baudrate)  
     print(use_com.portstr) 
@@ -128,6 +155,7 @@ def use_com_transfer_what_and_print(com, baudrate, what):
         print('nothing recieve...') 
     serial.Serial.close(use_com)
 
+#创建文件夹
 def make_folder(path):
     path=path.strip()
     path=path.rstrip("\\")
@@ -138,6 +166,7 @@ def make_folder(path):
     else:
         return False
 
+#删除文件夹
 def del_file(path):
     path=path.strip()
     path=path.rstrip("\\")
@@ -148,9 +177,9 @@ def del_file(path):
         shutil.rmtree(path)
         return False
 
+#udp监听
 def listenThreadFunc():
     global is_log_param_set
-    timestampflag = True
     local_addr = ('', 4999)
     so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     so.settimeout(0.05)
@@ -191,19 +220,6 @@ def listenThreadFunc():
             print(stmlog)
         logger.info(str_to_log)
 
-        if printFlag is True:
-            if timestampflag is True:
-                #sys.stdout.write('[' + datetime.strftime(datetime.now(), '%H:%M:%S.%f')[0:-3] + '] ')
-                timestampflag = False
-            try:
-                logstr = stmlog.decode()
-            except UnicodeDecodeError:
-                print(stmlog)
-            else:
-                if logstr.find('\r\n') >= 0:
-                    timestampflag = True
-                #sys.stdout.write(logstr)
-                sys.stdout.flush()
 
 #主程序
 listenThread = threading.Thread(target=listenThreadFunc)
@@ -211,7 +227,7 @@ listenThread.setDaemon(True)
 listenThread.start()
 
 while (1):
-    pc_to_stm32_uart_test()
-    #transition_card_to_stm32_uart_test('com6')
-    use_com_transfer_what_and_print('com6', 115200, 'aa')
+    pc_to_stm32_232_test('com1')
+    transition_card_to_stm32_485_test('com6')
+    transition_card_to_stm32_232_test('com6')
 os.system('pause')
