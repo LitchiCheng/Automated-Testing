@@ -15,6 +15,10 @@ from prompt_toolkit.completion import WordCompleter
 import logging
 import shutil
 from logging.handlers import RotatingFileHandler
+#modbus_sitpackage
+import modbus_tk
+import modbus_tk.defines as modbus_define
+import modbus_tk.modbus_tcp as modbus_tcp
 
 global is_log_param_set
 is_log_param_set = False
@@ -70,7 +74,7 @@ def pc_to_stm32_232_test(argv):
 def transition_card_to_stm32_485_test(argv):
     print('transition_card_to_stm32_485_test start')
     card_com = serial.Serial(argv,115200)  
-    strInput = 'BB' 
+    strInput = 'AA' 
     try:   
         n =card_com.write(bytes.fromhex(strInput))
     except: 
@@ -220,6 +224,36 @@ def listenThreadFunc():
             print(stmlog)
         logger.info(str_to_log)
 
+#modbus_tcp_io板模拟操作
+def modbus_tcp_io_simulation()
+    try:
+        master = modbus_tcp.TcpMaster(host="192.168.192.66")
+        master.set_timeout(5.0)
+        #def execute(self, slave, function_code, starting_address, quantity_of_x=0, output_value=0, data_format="", expected_length=-1):
+        # 读保持寄存器
+        master.execute(1, modbus_define.READ_HOLDING_REGISTERS, 0, 16)
+        # 读输入寄存器
+        master.execute(1, modbus_define.READ_INPUT_REGISTERS, 0, 16)
+        # 读线圈寄存器
+        master.execute(1, modbus_define.READ_COILS, 0, 16)
+        # 读离散输入寄存器
+        master.execute(1, modbus_define.READ_DISCRETE_INPUTS, 0, 16)
+        # 单个读写寄存器操作
+        # 写寄存器地址为0的保持寄存器
+        master.execute(1, modbus_define.WRITE_SINGLE_REGISTER, 0, output_value=21)
+        master.execute(1, modbus_define.READ_HOLDING_REGISTERS, 0, 1)
+        # 写寄存器地址为0的线圈寄存器，写入内容为0（位操作）
+        master.execute(1, modbus_define.WRITE_SINGLE_COIL, 0, output_value=0)
+        master.execute(1, modbus_define.READ_COILS, 0, 1)
+        # 多个寄存器读写操作
+        # 写寄存器起始地址为0的保持寄存器，操作寄存器个数为4
+        master.execute(1, modbus_define.WRITE_MULTIPLE_REGISTERS, 0, output_value=[20,21,22,23])
+        master.execute(1, modbus_define.READ_HOLDING_REGISTERS, 0, 4)
+        # 写寄存器起始地址为0的线圈寄存器
+        master.execute(1, modbus_define.WRITE_MULTIPLE_COILS, 0, output_value=[0,0,0,0])
+        master.execute(1, modbus_define.READ_COILS, 0, 4)
+    except modbus_tk.modbus.ModbusError, e:
+        print("%s- Code=%d" % (e, e.get_exception_code()))
 
 #主程序
 listenThread = threading.Thread(target=listenThreadFunc)
