@@ -11,3 +11,4 @@ Automated-Testing with python
 
 ## ChangeLog
 2019-01-23  增加modbus_tcp_io_simulation()，用来用IO板代替人工插拔操作。
+2019-01-25  将modbus_tcp操作封装成类。
